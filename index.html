@@ -125,6 +125,32 @@
   .pending { text-align: center; padding: 22px 12px; border: 2px dashed var(--line); border-radius: 14px; color: var(--sub); }
   .pending b { display: block; color: var(--ink); font-size: 1.1rem; margin-bottom: 4px; }
 
+  /* ===== 最初の3択 ===== */
+  /* 選ぶまでは各パートを隠しておき、body のクラスで出し分ける */
+  [data-for] { display: none; }
+  body.show-h [data-for~="h"], body.show-d [data-for~="d"] { display: block; }
+  .chooser { padding-top: 56px; text-align: center; }
+  .chooser h1 { font-size: 1.5rem; margin-bottom: 6px; }
+  .choices { display: grid; gap: 12px; margin: 24px 0 8px; }
+  .choice {
+    font: inherit; font-size: 1.1rem; font-weight: 700; color: var(--ink); background: var(--card);
+    border: 2px solid var(--line); border-radius: 16px; padding: 18px 16px; display: flex; align-items: center; gap: 14px;
+    text-align: left; cursor: pointer; transition: border-color .2s, transform .1s;
+  }
+  .choice:active { transform: scale(.98); }
+  .choice .ic { font-size: 1.8rem; min-width: 2.2rem; text-align: center; white-space: nowrap; }
+  .choice.b .ic { font-size: 1.3rem; }
+  .choice small { display: block; font-weight: 400; font-size: .85rem; color: var(--sub); }
+  .choice.h:hover { border-color: var(--take); }
+  .choice.d:hover { border-color: var(--accent); }
+  .choice.b:hover { border-color: var(--matsu); }
+  body.chosen .chooser { display: none; }
+  .rechoose { display: none; text-align: center; margin: 28px 0 0; }
+  body.chosen .rechoose { display: block; }
+  .rechoose button { font: inherit; font-size: .85rem; color: var(--sub); background: none; border: none; text-decoration: underline; }
+  .hero.drink h1 span { color: var(--accent); }
+  .cup { font-size: 3.2rem; margin: 4px 0 12px; }
+
   footer { text-align: center; font-size: .8rem; color: var(--sub); padding: 32px 16px 40px; border-top: 1px solid var(--line); margin-top: 32px; }
 
   /* スクロールで出てくる演出 */
@@ -140,8 +166,20 @@
 <body>
 <main>
 
-  <!-- ① つかみ -->
-  <section class="hero">
+  <!-- ⓪ 最初の3択（何を買ったかで見せる内容を変える） -->
+  <section class="chooser">
+    <p class="muted">ご購入ありがとうございました！</p>
+    <h1>さっき、何を買いましたか？</h1>
+    <p class="muted">選ぶと、あなたに関係する「種明かし」だけが出てきます。</p>
+    <div class="choices">
+      <button class="choice h" type="button" data-pick="h"><span class="ic">🍛</span><span>ハヤシライス<small>梅・竹・松のどれか</small></span></button>
+      <button class="choice d" type="button" data-pick="d"><span class="ic">🥤</span><span>ドリンク<small>Moninシロップのドリンク</small></span></button>
+      <button class="choice b" type="button" data-pick="h d"><span class="ic">🍛🥤</span><span>両方</span></button>
+    </div>
+  </section>
+
+  <!-- ① つかみ（ハヤシライス） -->
+  <section class="hero" data-for="h">
     <p class="q">さっき、ハヤシライスのどのサイズを選びましたか？</p>
     <div class="menu" aria-hidden="true">
       <div class="size" id="s-ume"><div class="n" style="color:var(--ume)">梅</div><div class="p">300円</div></div>
@@ -154,7 +192,7 @@
   </section>
 
   <!-- ② 妥協効果の解説 -->
-  <section class="reveal">
+  <section class="reveal" data-for="h">
     <span class="label">行動経済学</span>
     <h2>人は「真ん中」を選びたくなる</h2>
     <p>選択肢が3つ並ぶと、人は<strong class="em">両端を避けて真ん中を選びやすく</strong>なります。これを<strong>妥協効果（Compromise Effect）</strong>、または<strong>極端回避性（Extremeness Aversion）</strong>と呼びます。</p>
@@ -176,7 +214,7 @@
   </section>
 
   <!-- ③ 価格の種明かし -->
-  <section class="reveal">
+  <section class="reveal" data-for="h">
     <span class="label">今回の仕掛け</span>
     <h2>値段の「差」をわざとずらしました</h2>
     <p>3つの値段は、差が同じになっていません。</p>
@@ -209,10 +247,19 @@
     <p class="muted">梅や松を選んだあなたも大歓迎です。そういう人がいるからこそ、実験に意味があります。</p>
   </section>
 
+  <!-- ① つかみ（ドリンク） -->
+  <section class="hero drink" data-for="d">
+    <div class="cup" aria-hidden="true">🥤</div>
+    <p class="q">そのドリンク、買った決め手は何でしたか？</p>
+    <h1>店員さんの<span>「声」</span>？<br>それとも<span>「商品」</span>？</h1>
+    <p class="muted">実はあなたが買った時間帯によって、<br>私たちは売り方をわざと変えていました。</p>
+    <div class="scroll-hint">▼ 種明かしはこちら</div>
+  </section>
+
   <!-- ④ ドリンクのA/B -->
-  <section class="reveal">
+  <section class="reveal" data-for="d">
     <span class="label">マーケティング</span>
-    <h2>ドリンクでも、もう1つ実験中</h2>
+    <h2>人で買う？ 商品で買う？</h2>
     <p>Monin（モナン）シロップのドリンクでは、<strong>「人は、人で買うのか。商品で買うのか」</strong>を比べています。時間帯ごとに、売り方を切り替えています。</p>
     <div class="ab">
       <div class="team a"><b>A班：人で売る</b><p>元気な呼び込みと接客で売る</p></div>
@@ -222,11 +269,19 @@
   </section>
 
   <!-- ⑤ 結果発表 -->
-  <section class="reveal" id="result">
+  <section class="reveal" id="result" data-for="h">
     <span class="label">結果発表</span>
     <h2>実際、何%の人が竹を選んだ？</h2>
-    <div id="result-body"></div>
+    <div id="result-h"></div>
   </section>
+
+  <section class="reveal" id="result-drink" data-for="d">
+    <span class="label">結果発表</span>
+    <h2>売れたのは「人」？「商品」？</h2>
+    <div id="result-d"></div>
+  </section>
+
+  <div class="rechoose"><button type="button" id="rechoose">← 買ったものを選び直す</button></div>
 
 </main>
 <footer>
@@ -248,37 +303,69 @@
   // 目標：竹が60%以上
   const TARGET = 60;
 
-  // ---- 結果欄を組み立てる ----
-  const body = document.getElementById("result-body");
-  const done = RESULTS.filter(r => r.ume !== null && r.take !== null && r.matsu !== null);
-  if (done.length === 0) {
-    body.innerHTML = '<div class="pending"><b>閉店時に発表します</b>集計中です。お店が閉まったあとに、このページをもう一度開いてみてください。<br>（目標：竹が' + TARGET + '%以上）</div>';
-  } else {
-    // 日ごと＋合計（2日分そろったら合計も出す）
-    const rows = done.slice();
+  // ---- 結果欄を組み立てる（ハヤシとドリンクで別々に） ----
+  const pending = note => '<div class="pending"><b>閉店時に発表します</b>集計中です。お店が閉まったあとに、このページをもう一度開いてみてください。' + (note ? '<br>' + note : '') + '</div>';
+  // 棒グラフ1本分
+  const bar = (name, pct, color) =>
+    '<div class="bar"><span style="color:' + color + '">' + name + '</span>' +
+    '<div class="track"><div class="fill" data-w="' + pct + '" style="background:' + color + '"></div></div>' +
+    '<span class="pct">' + pct + '%</span></div>';
+  const pctOf = (n, total) => total ? Math.round(n / total * 1000) / 10 : 0;
+  // そろった日だけ取り出し、2日分あれば合計行も足す
+  function rowsWith(keys) {
+    const done = RESULTS.filter(r => keys.every(k => r[k] !== null));
     if (done.length > 1) {
-      const sum = k => done.reduce((a, r) => a + (r[k] || 0), 0);
-      rows.push({ day: "2日間の合計", ume: sum("ume"), take: sum("take"), matsu: sum("matsu"), drinkA: sum("drinkA"), drinkB: sum("drinkB") });
+      const sum = { day: "2日間の合計" };
+      keys.forEach(k => sum[k] = done.reduce((a, r) => a + r[k], 0));
+      done.push(sum);
     }
-    body.innerHTML = rows.map((r, i) => {
-      const total = r.ume + r.take + r.matsu;
-      const pct = n => total ? Math.round(n / total * 1000) / 10 : 0;
-      const bar = (name, n, color) =>
-        '<div class="bar"><span style="color:' + color + '">' + name + '</span>' +
-        '<div class="track"><div class="fill" data-w="' + pct(n) + '" style="background:' + color + '"></div></div>' +
-        '<span class="pct">' + pct(n) + '%</span></div>';
-      const hit = pct(r.take) >= TARGET;
-      const drink = (r.drinkA !== null && r.drinkB !== null)
-        ? '<p class="muted" style="margin:10px 0 0">ドリンク：A班（人で売る）' + r.drinkA + '杯 ／ B班（商品で売る）' + r.drinkB + '杯</p>' : '';
-      return '<div class="card"><h3 style="font-size:1rem">' + r.day + '（ハヤシライス ' + total + '食）</h3>' +
-        '<div class="bars">' + bar("梅", r.ume, "var(--ume)") + bar("竹", r.take, "var(--take)") + bar("松", r.matsu, "var(--matsu)") + '</div>' +
-        '<p style="margin:6px 0 0;font-weight:700">' + (hit ? '竹が' + pct(r.take) + '%。目標の' + TARGET + '%を達成しました。' : '竹は' + pct(r.take) + '%。目標の' + TARGET + '%には届きませんでした。') + '</p>' +
-        drink + '</div>';
-    }).join("");
+    return done;
   }
 
-  // ---- 冒頭：竹が選ばれる演出 ----
-  setTimeout(() => document.getElementById("s-take").classList.add("pick"), 700);
+  // ハヤシライス
+  const hRows = rowsWith(["ume", "take", "matsu"]);
+  document.getElementById("result-h").innerHTML = hRows.length === 0
+    ? pending("（目標：竹が" + TARGET + "%以上）")
+    : hRows.map(r => {
+        const total = r.ume + r.take + r.matsu;
+        const t = pctOf(r.take, total);
+        return '<div class="card"><h3 style="font-size:1rem">' + r.day + '（ハヤシライス ' + total + '食）</h3>' +
+          '<div class="bars">' + bar("梅", pctOf(r.ume, total), "var(--ume)") + bar("竹", t, "var(--take)") + bar("松", pctOf(r.matsu, total), "var(--matsu)") + '</div>' +
+          '<p style="margin:6px 0 0;font-weight:700">' + (t >= TARGET ? '竹が' + t + '%。目標の' + TARGET + '%を達成しました。' : '竹は' + t + '%。目標の' + TARGET + '%には届きませんでした。') + '</p></div>';
+      }).join("");
+
+  // ドリンク
+  const dRows = rowsWith(["drinkA", "drinkB"]);
+  document.getElementById("result-d").innerHTML = dRows.length === 0
+    ? pending()
+    : dRows.map(r => {
+        const total = r.drinkA + r.drinkB;
+        const verdict = r.drinkA === r.drinkB ? "引き分けでした。" : (r.drinkA > r.drinkB ? "「人で売る」A班の勝ち。" : "「商品で売る」B班の勝ち。");
+        return '<div class="card"><h3 style="font-size:1rem">' + r.day + '（ドリンク ' + total + '杯）</h3>' +
+          '<div class="bars">' + bar("A班", pctOf(r.drinkA, total), "var(--accent)") + bar("B班", pctOf(r.drinkB, total), "var(--matsu)") + '</div>' +
+          '<p class="muted" style="margin:6px 0 0">A班（人で売る）' + r.drinkA + '杯 ／ B班（商品で売る）' + r.drinkB + '杯</p>' +
+          '<p style="margin:6px 0 0;font-weight:700">' + verdict + '</p></div>';
+      }).join("");
+
+  // ---- 最初の3択：選んだものに合わせて表示を切り替える ----
+  function choose(pick) {
+    document.body.classList.remove("show-h", "show-d");
+    pick.split(" ").forEach(p => document.body.classList.add("show-" + p));
+    document.body.classList.add("chosen");
+    window.scrollTo(0, 0);
+    if (pick.includes("h")) {
+      // 竹が選ばれる演出をやり直す
+      const take = document.getElementById("s-take");
+      take.classList.remove("pick");
+      setTimeout(() => take.classList.add("pick"), 700);
+    }
+  }
+  document.querySelectorAll(".choice").forEach(b => b.addEventListener("click", () => choose(b.dataset.pick)));
+  document.getElementById("rechoose").addEventListener("click", () => {
+    document.body.classList.remove("show-h", "show-d", "chosen");
+    window.scrollTo(0, 0);
+  });
+
 
   // ---- 妥協効果のアニメ：点が上から落ちて、多くが真ん中に集まる ----
   const stage = document.getElementById("stage");
