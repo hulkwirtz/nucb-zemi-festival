@@ -95,7 +95,7 @@
 
   /* ===== 価格の種明かし ===== */
   .ladder { position: relative; margin: 18px 0 6px; padding: 0 4px; }
-  .rail { position: relative; height: 4px; background: var(--line); border-radius: 2px; margin: 52px 0 40px; }
+  .rail { position: relative; height: 4px; background: var(--line); border-radius: 2px; margin: 52px 22px 40px; }
   .stop { position: absolute; top: 50%; transform: translate(-50%, -50%); text-align: center; }
   .stop .pin { width: 18px; height: 18px; border-radius: 50%; border: 4px solid var(--card); margin: 0 auto; }
   .stop .yen { position: absolute; top: -40px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-weight: 800; }
@@ -105,6 +105,8 @@
 
   table.price { width: 100%; border-collapse: collapse; font-size: .92rem; margin-top: 6px; }
   table.price th, table.price td { padding: 8px 6px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+  /* 名前と値段の列は折り返さない */
+  table.price td:nth-child(-n+2), table.price th:nth-child(-n+2) { white-space: nowrap; }
   table.price th { font-size: .8rem; color: var(--sub); font-weight: 600; }
   table.price tr.mid td { background: var(--take-soft); }
 
@@ -191,33 +193,11 @@
     <div class="scroll-hint">▼ 種明かしはこちら</div>
   </section>
 
-  <!-- ② 妥協効果の解説 -->
-  <section class="reveal" data-for="h">
-    <span class="label">行動経済学</span>
-    <h2>人は「真ん中」を選びたくなる</h2>
-    <p>選択肢が3つ並ぶと、人は<strong class="em">両端を避けて真ん中を選びやすく</strong>なります。これを<strong>妥協効果（Compromise Effect）</strong>、または<strong>極端回避性（Extremeness Aversion）</strong>と呼びます。</p>
-
-    <div class="card">
-      <div class="stage" id="stage" aria-label="人が真ん中の選択肢に集まっていく図">
-        <div class="lane l">梅（安い）</div>
-        <div class="lane c">竹（真ん中）</div>
-        <div class="lane r">松（高い）</div>
-      </div>
-      <p class="stage-caption">迷った人ほど、真ん中に流れていく</p>
-      <button class="replay" id="replay" type="button">もう一度見る</button>
-    </div>
-
-    <p>理由はシンプルです。</p>
-    <p>・一番安いのは「物足りないかも」と不安になる<br>・一番高いのは「損するかも」と不安になる<br>・真ん中なら<strong>どちらの後悔も小さい</strong></p>
-    <div class="quote">「真ん中を選べば、大きく失敗しない」<br>そう感じた時点で、もう効果の中にいます。</div>
-    <p class="muted">提唱：Itamar Simonson（1989）, <i>Journal of Consumer Research</i></p>
-  </section>
-
-  <!-- ③ 価格の種明かし -->
+  <!-- ② 値段の差の種明かし（メイン） -->
   <section class="reveal" data-for="h">
     <span class="label">今回の仕掛け</span>
-    <h2>値段の「差」をわざとずらしました</h2>
-    <p>3つの値段は、差が同じになっていません。</p>
+    <h2>カギは、値段の「差」です</h2>
+    <p>メニューをもう一度見てください。3つの値段は、差が同じになっていません。</p>
 
     <div class="ladder" aria-hidden="true">
       <div class="rail">
@@ -231,19 +211,79 @@
     </div>
 
     <div class="card">
-      <p><strong>梅 → 竹は +100円だけ。</strong>なのに量は1.5倍。<br>→ 竹が「お得」に見える</p>
-      <p style="margin:0"><strong>竹 → 松は +300円。</strong>一気に高くなる。<br>→ 竹が「ちょうどいい」に見える</p>
+      <p><strong>梅 → 竹は、たった +100円。</strong><br>→ 「足さないと損」に見える</p>
+      <p style="margin:0"><strong>竹 → 松は、一気に +300円。</strong><br>→ 「さすがに高い」に見える</p>
+    </div>
+    <p>この差のつけ方には、行動経済学（人が「つい」やってしまう判断のクセを研究する学問）の効果が3つ仕込まれています。どれも<strong class="em">400円の竹を選んでもらうため</strong>のものです。</p>
+  </section>
+
+  <!-- ③ 効果① 損失回避 -->
+  <section class="reveal" data-for="h">
+    <span class="label">効果 ①</span>
+    <h2>梅は「損」に見える</h2>
+    <p>竹の量は梅の1.5倍。なのに値段の差は100円だけです。同じ量にそろえて比べると、こうなります。</p>
+    <table class="price">
+      <tr><th></th><th>値段</th><th>竹1杯分に<br>そろえると</th></tr>
+      <tr><td style="color:var(--ume);font-weight:700">梅</td><td>300円</td><td>450円</td></tr>
+      <tr class="mid"><td style="color:var(--take);font-weight:700">竹</td><td>400円</td><td><b>400円</b></td></tr>
+    </table>
+    <p style="margin-top:14px">量で比べると、梅のほうが割高です。「100円ケチって損するのはイヤだな」と感じた人も多いはず。</p>
+    <div class="quote">人は、得をする喜びより<br>損をする痛みを強く感じる。</div>
+    <p>これを<strong>損失回避（Loss Aversion）</strong>と呼びます。梅は「安いけど、損している気がする」選択肢になっています。</p>
+    <p class="muted">Kahneman &amp; Tversky（1979）プロスペクト理論</p>
+  </section>
+
+  <!-- ④ 効果② アンカリング -->
+  <section class="reveal" data-for="h">
+    <span class="label">効果 ②</span>
+    <h2>松は「ものさし」</h2>
+    <p>学祭の食べ物は、数百円が相場です。700円の松は正直ちょっと高いので、選ぶ人はあまり多くありません。</p>
+    <p>それでも、松が横にあることには意味があります。<strong>700円という数字を見たあとだと、400円の竹が「手ごろ」に見える</strong>からです。</p>
+    <div class="quote">最初に見た数字が「ものさし」になり、<br>そのあとの判断が引っぱられる。</div>
+    <p>これを<strong>アンカリング効果（Anchoring Effect）</strong>と呼びます。アンカー（anchor）は船の「いかり」のこと。最初の数字がいかりのように、判断をその近くにつなぎとめます。</p>
+    <p>つまり松には、<b>竹を安く見せる「ものさし」</b>としての役割もありました。</p>
+    <p class="muted">Tversky &amp; Kahneman（1974）, <i>Science</i></p>
+  </section>
+
+  <!-- ⑤ 効果③ 妥協効果 -->
+  <section class="reveal" data-for="h">
+    <span class="label">効果 ③</span>
+    <h2>結局、真ん中が安心</h2>
+    <p>選択肢が3つ並ぶと、人は<strong class="em">両端を避けて真ん中を選びやすく</strong>なります。これを<strong>妥協効果（Compromise Effect）</strong>、または<strong>極端回避性（Extremeness Aversion）</strong>と呼びます。</p>
+
+    <div class="card">
+      <div class="stage" id="stage" aria-label="人が真ん中の選択肢に集まっていく図">
+        <div class="lane l">梅（安い）</div>
+        <div class="lane c">竹（真ん中）</div>
+        <div class="lane r">松（高い）</div>
+      </div>
+      <p class="stage-caption">迷った人ほど、真ん中に流れていく</p>
+      <button class="replay" id="replay" type="button">もう一度見る</button>
     </div>
 
-    <p>実はゼミでは最初、<b>300円／500円／700円</b>という案も出ました。でも差が両方とも200円だと、真ん中に寄せる力が弱くなります。そこで差をわざと<b>+100円と+300円</b>にずらしました。</p>
+    <p>・一番安いのは「物足りないかも」と不安になる<br>・一番高いのは「払いすぎかも」と不安になる<br>・真ん中なら<strong>どちらの後悔も小さい</strong></p>
+    <div class="quote">「真ん中を選べば、大きく失敗しない」<br>そう感じた時点で、もう効果の中にいます。</div>
+    <p class="muted">Simonson（1989）, <i>Journal of Consumer Research</i></p>
+  </section>
+
+  <!-- ⑥ もし2択だったら -->
+  <section class="reveal" data-for="h">
+    <span class="label">まとめ</span>
+    <h2>もし、梅と竹の2択だったら？</h2>
+    <div class="ab">
+      <div class="team"><b style="color:var(--sub)">梅300・竹400</b><p>竹は「高いほう」。<br>「高いほうはやめとこう」と、梅に流れやすい</p></div>
+      <div class="team" style="border-color:var(--take)"><b style="color:var(--take)">梅300・竹400・松700</b><p>竹は「真ん中」。<br>梅は損に見え、松は高い。竹に集まりやすい</p></div>
+    </div>
+    <p>同じ400円の竹でも、<strong>横に何を置くか</strong>で「高い」にも「ちょうどいい」にも見え方が変わります。梅と松は、竹を引き立てるための選択肢でもありました。日本のお店では「松竹梅の法則」とも呼ばれるやり方です。</p>
+    <p>実はゼミでは最初、<b>300円／500円／700円</b>という案も出ていました。でも差が両方とも200円だと、梅の「損した感じ」も、松の「高い感じ」も弱くなります。そこで差をわざと<b>+100円と+300円</b>にずらしました。</p>
 
     <table class="price">
       <tr><th>サイズ</th><th>値段</th><th>この屋台での役割</th></tr>
-      <tr><td style="color:var(--ume);font-weight:700">梅</td><td>300円</td><td>安い基準。「ちょっと物足りない」</td></tr>
+      <tr><td style="color:var(--ume);font-weight:700">梅</td><td>300円</td><td>「安いけど損する気がする」選択肢</td></tr>
       <tr class="mid"><td style="color:var(--take);font-weight:700">竹</td><td><b>400円</b></td><td><b>本命。</b>選んでほしかったサイズ</td></tr>
-      <tr><td style="color:var(--matsu);font-weight:700">松</td><td>700円</td><td>高い基準。竹を手ごろに見せる</td></tr>
+      <tr><td style="color:var(--matsu);font-weight:700">松</td><td>700円</td><td>竹を安く見せる「ものさし」</td></tr>
     </table>
-    <p class="muted" style="margin-top:12px">※ 松も本当に販売しています。ありえない選択肢をわざと混ぜる「おとり効果」ではなく、3つともふつうに選べる中で真ん中に寄る「妥協効果」を測っています。</p>
+    <p class="muted" style="margin-top:12px">※ 松も本当に売っています。ありえない選択肢をわざと混ぜる「おとり効果」とは違い、3つともふつうに選べる中で、真ん中に寄るかどうかを測っています。</p>
     <p class="muted">梅や松を選んだあなたも大歓迎です。そういう人がいるからこそ、実験に意味があります。</p>
   </section>
 
