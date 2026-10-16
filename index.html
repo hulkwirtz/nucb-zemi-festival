@@ -331,29 +331,43 @@
 
 <script>
   // ============================================================
-  // ▼ 結果はここを書き換えるだけで反映される
-  //   数字が null のあいだは「閉店時に発表」と表示される
-  //   ume=梅, take=竹, matsu=松 の販売数（杯数）
-  //   drinkA / drinkB = ドリンクの販売数（A班・B班）
+  // ▼ 会計アプリの記録先（Apps ScriptのウェブアプリURL）
+  //   ここが入っていれば、30秒ごとに最新の集計を読みにいく
+  const API_URL = "";
+  // ▼ 手入力の結果（紙で数えた日など）。数字を入れた日は、こちらが優先される
+  //   ume=梅, take=竹, matsu=松 の販売数／drinkA・drinkB=ドリンクの販売数（A班・B班）
   // ============================================================
   const RESULTS = [
-    { day: "1日目（10/17）", ume: null, take: null, matsu: null, drinkA: null, drinkB: null },
-    { day: "2日目（10/18）", ume: null, take: null, matsu: null, drinkA: null, drinkB: null },
+    { date: "2026-10-17", day: "1日目（10/17）", ume: null, take: null, matsu: null, drinkA: null, drinkB: null },
+    { date: "2026-10-18", day: "2日目（10/18）", ume: null, take: null, matsu: null, drinkA: null, drinkB: null },
   ];
   // 目標：竹が60%以上
   const TARGET = 60;
 
   // ---- 結果欄を組み立てる（ハヤシとドリンクで別々に） ----
-  const pending = note => '<div class="pending"><b>閉店時に発表します</b>集計中です。お店が閉まったあとに、このページをもう一度開いてみてください。' + (note ? '<br>' + note : '') + '</div>';
+  const pending = note => '<div class="pending"><b>集計中です</b>お店が開いたら、ここに結果が出てきます。' + (note ? '<br>' + note : '') + '</div>';
   // 棒グラフ1本分
   const bar = (name, pct, color) =>
     '<div class="bar"><span style="color:' + color + '">' + name + '</span>' +
     '<div class="track"><div class="fill" data-w="' + pct + '" style="background:' + color + '"></div></div>' +
     '<span class="pct">' + pct + '%</span></div>';
   const pctOf = (n, total) => total ? Math.round(n / total * 1000) / 10 : 0;
-  // そろった日だけ取り出し、2日分あれば合計行も足す
+
+  let live = {};        // 会計アプリからの集計（日付→数字）
+  let updated = "";     // 最終更新の時刻
+
+  // 手入力があればそれを、なければ会計アプリの数字を使う
+  function merged() {
+    return RESULTS.map(r => {
+      const manual = ["ume", "take", "matsu", "drinkA", "drinkB"].some(k => r[k] !== null);
+      if (manual) return Object.assign({}, r, ["ume","take","matsu","drinkA","drinkB"].reduce((o, k) => (o[k] = r[k] || 0, o), {}));
+      const d = live[r.date];
+      return d ? Object.assign({}, r, d) : null;
+    }).filter(Boolean);
+  }
+  // 数字がある日だけ取り出し、2日分あれば合計行も足す
   function rowsWith(keys) {
-    const done = RESULTS.filter(r => keys.every(k => r[k] !== null));
+    const done = merged().filter(r => keys.some(k => r[k] > 0));
     if (done.length > 1) {
       const sum = { day: "2日間の合計" };
       keys.forEach(k => sum[k] = done.reduce((a, r) => a + r[k], 0));
@@ -361,31 +375,50 @@
     }
     return done;
   }
+  const stamp = () => updated ? '<p class="muted" style="text-align:right;margin:0">最終更新 ' + updated + '（30秒ごとに自動で更新）</p>' : '';
 
-  // ハヤシライス
-  const hRows = rowsWith(["ume", "take", "matsu"]);
-  document.getElementById("result-h").innerHTML = hRows.length === 0
-    ? pending("（目標：竹が" + TARGET + "%以上）")
-    : hRows.map(r => {
-        const total = r.ume + r.take + r.matsu;
-        const t = pctOf(r.take, total);
-        return '<div class="card"><h3 style="font-size:1rem">' + r.day + '（ハヤシライス ' + total + '食）</h3>' +
-          '<div class="bars">' + bar("梅", pctOf(r.ume, total), "var(--ume)") + bar("竹", t, "var(--take)") + bar("松", pctOf(r.matsu, total), "var(--matsu)") + '</div>' +
-          '<p style="margin:6px 0 0;font-weight:700">' + (t >= TARGET ? '竹が' + t + '%。目標の' + TARGET + '%を達成しました。' : '竹は' + t + '%。目標の' + TARGET + '%には届きませんでした。') + '</p></div>';
-      }).join("");
+  function renderResults() {
+    // ハヤシライス
+    const hRows = rowsWith(["ume", "take", "matsu"]);
+    document.getElementById("result-h").innerHTML = hRows.length === 0
+      ? pending("（目標：竹が" + TARGET + "%以上）")
+      : stamp() + hRows.map(r => {
+          const total = r.ume + r.take + r.matsu;
+          const t = pctOf(r.take, total);
+          return '<div class="card"><h3 style="font-size:1rem">' + r.day + '（ハヤシライス ' + total + '食）</h3>' +
+            '<div class="bars">' + bar("梅", pctOf(r.ume, total), "var(--ume)") + bar("竹", t, "var(--take)") + bar("松", pctOf(r.matsu, total), "var(--matsu)") + '</div>' +
+            '<p style="margin:6px 0 0;font-weight:700">竹は' + t + '%。' + (t >= TARGET ? '目標の' + TARGET + '%を超えています。' : '目標の' + TARGET + '%にはまだ届いていません。') + '</p></div>';
+        }).join("");
 
-  // ドリンク
-  const dRows = rowsWith(["drinkA", "drinkB"]);
-  document.getElementById("result-d").innerHTML = dRows.length === 0
-    ? pending()
-    : dRows.map(r => {
-        const total = r.drinkA + r.drinkB;
-        const verdict = r.drinkA === r.drinkB ? "引き分けでした。" : (r.drinkA > r.drinkB ? "「人で売る」A班の勝ち。" : "「商品で売る」B班の勝ち。");
-        return '<div class="card"><h3 style="font-size:1rem">' + r.day + '（ドリンク ' + total + '杯）</h3>' +
-          '<div class="bars">' + bar("A班", pctOf(r.drinkA, total), "var(--accent)") + bar("B班", pctOf(r.drinkB, total), "var(--matsu)") + '</div>' +
-          '<p class="muted" style="margin:6px 0 0">A班（人で売る）' + r.drinkA + '杯 ／ B班（商品で売る）' + r.drinkB + '杯</p>' +
-          '<p style="margin:6px 0 0;font-weight:700">' + verdict + '</p></div>';
-      }).join("");
+    // ドリンク
+    const dRows = rowsWith(["drinkA", "drinkB"]);
+    document.getElementById("result-d").innerHTML = dRows.length === 0
+      ? pending()
+      : stamp() + dRows.map(r => {
+          const total = r.drinkA + r.drinkB;
+          const verdict = r.drinkA === r.drinkB ? "今のところ引き分け。" : (r.drinkA > r.drinkB ? "今のところ「人で売る」A班が優勢。" : "今のところ「商品で売る」B班が優勢。");
+          return '<div class="card"><h3 style="font-size:1rem">' + r.day + '（ドリンク ' + total + '杯）</h3>' +
+            '<div class="bars">' + bar("A班", pctOf(r.drinkA, total), "var(--accent)") + bar("B班", pctOf(r.drinkB, total), "var(--matsu)") + '</div>' +
+            '<p class="muted" style="margin:6px 0 0">A班（人で売る）' + r.drinkA + '杯 ／ B班（商品で売る）' + r.drinkB + '杯</p>' +
+            '<p style="margin:6px 0 0;font-weight:700">' + verdict + '</p></div>';
+        }).join("");
+
+    // すでに画面に出ている結果欄は、棒をすぐ伸ばす（スクロール演出を待たない）
+    document.querySelectorAll("#result.on .fill, #result-drink.on .fill").forEach(f => setTimeout(() => f.style.width = f.dataset.w + "%", 50));
+  }
+
+  // ---- 会計アプリの集計を読みにいく ----
+  async function pull() {
+    if (!API_URL) return;
+    try {
+      const res = await fetch(API_URL + "?t=" + Date.now());
+      const data = await res.json();
+      if (data.ok) { live = data.days || {}; updated = data.updated || ""; renderResults(); }
+    } catch (e) { /* 電波が悪いときは前の表示のまま */ }
+  }
+  renderResults();
+  pull();
+  setInterval(pull, 30000);
 
   // ---- 最初の3択：選んだものに合わせて表示を切り替える ----
   function choose(pick) {

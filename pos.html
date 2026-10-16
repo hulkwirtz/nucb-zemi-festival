@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="robots" content="noindex, nofollow">
+<title>屋台レジ</title>
+<meta name="theme-color" content="#1f3d2b">
+<style>
+  :root {
+    --bg: #f4f2ec; --card: #fff; --ink: #1d1d1b; --sub: #66645d; --line: #dedad0;
+    --ume: #c2507a; --take: #2f7a4a; --matsu: #2f5d8a; --drink: #d98a1f; --danger: #c0392b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #121311; --card: #1e201d; --ink: #efede7; --sub: #a9a69e; --line: #34372f;
+      --ume: #e07fa3; --take: #5fc184; --matsu: #6fa3d6; --drink: #f0a845; --danger: #e5665a; }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; }
+  main { max-width: 520px; margin: 0 auto; padding: 10px 12px 28px; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+
+  /* 上の帯：送信状況と班 */
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+  .status { font-size: .8rem; padding: 4px 10px; border-radius: 99px; background: var(--card); border: 1px solid var(--line); }
+  .status.ok { color: var(--take); } .status.wait { color: var(--drink); } .status.ng { color: var(--danger); }
+  .team { display: flex; border: 2px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .team button { border: 0; background: var(--card); padding: 8px 14px; font-weight: 800; font-size: .95rem; }
+  .team button.on { background: var(--drink); color: #fff; }
+
+  /* 商品ボタン */
+  .items { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .item { background: var(--card); border: 2px solid var(--line); border-radius: 16px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+  .item .add { border: 0; background: none; text-align: left; padding: 4px 2px; }
+  .item .nm { font-size: 1.5rem; font-weight: 800; }
+  .item .pr { font-size: .9rem; color: var(--sub); }
+  .item .ctl { display: flex; align-items: center; justify-content: space-between; }
+  .item .ctl button { width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); font-size: 1.4rem; font-weight: 700; }
+  .item .qty { font-size: 1.8rem; font-weight: 800; font-variant-numeric: tabular-nums; min-width: 2ch; text-align: center; }
+  .item.has { border-color: currentColor; }
+
+  /* 合計・おつり */
+  .sum { margin: 12px 0; background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 12px; }
+  .sum .row { display: flex; justify-content: space-between; align-items: baseline; }
+  .sum .total { font-size: 2.2rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .paid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 10px 0 6px; }
+  .paid button { border: 1px solid var(--line); background: var(--bg); border-radius: 10px; padding: 10px 0; font-size: .85rem; font-weight: 700; }
+  .paid button.on { background: var(--ink); color: var(--bg); }
+  .change { font-size: 1.2rem; font-weight: 800; }
+  .change.short { color: var(--danger); }
+
+  .go { width: 100%; border: 0; border-radius: 16px; padding: 18px; font-size: 1.3rem; font-weight: 800; background: var(--take); color: #fff; }
+  .go:disabled { opacity: .35; }
+  .sub-actions { display: flex; gap: 8px; margin-top: 8px; }
+  .sub-actions button { flex: 1; border: 1px solid var(--line); background: var(--card); border-radius: 12px; padding: 12px 6px; font-size: .9rem; }
+  .sub-actions .void { color: var(--danger); }
+
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 18px; border-radius: 99px; font-weight: 700; opacity: 0; transition: opacity .2s; pointer-events: none; }
+  .toast.on { opacity: 1; }
+
+  /* スタッフ用の今日の集計 */
+  .stats { margin-top: 16px; font-size: .85rem; color: var(--sub); background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+  .stats b { color: var(--ink); }
+  details { margin-top: 12px; font-size: .9rem; }
+  details label { display: block; margin: 10px 0 4px; color: var(--sub); }
+  details input { width: 100%; font: inherit; padding: 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--ink); }
+  details .save { margin-top: 10px; width: 100%; border: 0; border-radius: 10px; padding: 12px; background: var(--ink); color: var(--bg); font-weight: 700; }
+</style>
+</head>
+<body>
+<main>
+  <div class="top">
+    <span class="status" id="status">準備中</span>
+    <!-- ドリンクの売り方：今どちらの班の時間帯か -->
+    <div class="team" role="group" aria-label="ドリンクの班">
+      <button type="button" data-team="A">A班 人</button>
+      <button type="button" data-team="B">B班 商品</button>
+    </div>
+  </div>
+
+  <div class="items" id="items"></div>
+
+  <div class="sum">
+    <div class="row"><span>合計</span><span class="total" id="total">0円</span></div>
+    <div class="paid" id="paid">
+      <button type="button" data-paid="exact">ちょうど</button>
+      <button type="button" data-paid="500">500</button>
+      <button type="button" data-paid="1000">1000</button>
+      <button type="button" data-paid="2000">2000</button>
+      <button type="button" data-paid="5000">5000</button>
+    </div>
+    <div class="row"><span>おつり</span><span class="change" id="change">—</span></div>
+  </div>
+
+  <button class="go" id="go" type="button" disabled>会計確定</button>
+  <div class="sub-actions">
+    <button type="button" id="clear">クリア</button>
+    <button type="button" class="void" id="void">直前の会計を取消</button>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <details id="settings">
+    <summary>設定（最初に1回だけ）</summary>
+    <label for="pin">暗証番号（PIN）</label>
+    <input id="pin" inputmode="numeric" autocomplete="off">
+    <label for="api">記録先のURL（Apps ScriptのウェブアプリURL）</label>
+    <input id="api" inputmode="url" autocomplete="off" placeholder="https://script.google.com/macros/s/.../exec">
+    <label for="dprice">ドリンクの値段（円）</label>
+    <input id="dprice" inputmode="numeric">
+    <button class="save" id="save" type="button">保存</button>
+  </details>
+</main>
+<div class="toast" id="toast"></div>
+
+<script>
+  // ============================================================
+  // ▼ 記録先（Apps ScriptのウェブアプリURL）。設定画面からも変えられる
+  const DEFAULT_API = "";
+  // ============================================================
+
+  // ---- この端末に保存する道具（使えない環境でも止まらないように try で包む） ----
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+  };
+
+  const cfg = Object.assign({ pin: "", api: DEFAULT_API, drinkPrice: 300 }, store.get("pos_cfg", {}));
+  if (!cfg.api) cfg.api = DEFAULT_API;
+  let team = store.get("pos_team", "A");
+  let queue = store.get("pos_queue", []);   // まだ送れていない記録
+  let log = store.get("pos_log", []);       // この端末で確定した会計（集計・取消用）
+
+  const ITEMS = [
+    { key: "ume", name: "梅", price: 300, color: "var(--ume)" },
+    { key: "take", name: "竹", price: 400, color: "var(--take)" },
+    { key: "matsu", name: "松", price: 700, color: "var(--matsu)" },
+    { key: "drink", name: "ドリンク", price: () => Number(cfg.drinkPrice) || 0, color: "var(--drink)" },
+  ];
+  const priceOf = it => typeof it.price === "function" ? it.price() : it.price;
+  let cart = { ume: 0, take: 0, matsu: 0, drink: 0 };
+  let paid = null;
+
+  const $ = id => document.getElementById(id);
+  function toast(msg) { const t = $("toast"); t.textContent = msg; t.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("on"), 1600); }
+
+  // ---- 商品ボタンを描く ----
+  function renderItems() {
+    $("items").innerHTML = ITEMS.map(it =>
+      '<div class="item' + (cart[it.key] ? " has" : "") + '" style="color:' + it.color + '">' +
+        '<button type="button" class="add" data-add="' + it.key + '"><div class="nm">' + it.name + '</div><div class="pr">' + priceOf(it) + '円</div></button>' +
+        '<div class="ctl" style="color:var(--ink)"><button type="button" data-dec="' + it.key + '">−</button><span class="qty">' + cart[it.key] + '</span><button type="button" data-inc="' + it.key + '">＋</button></div>' +
+      '</div>').join("");
+  }
+  const totalOf = () => ITEMS.reduce((a, it) => a + cart[it.key] * priceOf(it), 0);
+
+  function render() {
+    renderItems();
+    const total = totalOf();
+    $("total").textContent = total.toLocaleString() + "円";
+    $("go").disabled = total === 0 && cart.drink === 0;
+    document.querySelectorAll("#paid button").forEach(b => b.classList.toggle("on", b.dataset.paid === String(paid)));
+    const ch = $("change");
+    if (paid === null || total === 0) { ch.textContent = "—"; ch.classList.remove("short"); }
+    else {
+      const p = paid === "exact" ? total : Number(paid);
+      const diff = p - total;
+      ch.textContent = diff >= 0 ? diff.toLocaleString() + "円" : "あと" + (-diff).toLocaleString() + "円";
+      ch.classList.toggle("short", diff < 0);
+    }
+    document.querySelectorAll(".team button").forEach(b => b.classList.toggle("on", b.dataset.team === team));
+    renderStats();
+    renderStatus();
+  }
+
+  // ---- 今日の集計（この端末の分） ----
+  function renderStats() {
+    const today = new Date().toLocaleDateString("ja-JP");
+    const s = { ume: 0, take: 0, matsu: 0, A: 0, B: 0, n: 0 };
+    log.filter(o => !o.voided && new Date(o.ts).toLocaleDateString("ja-JP") === today).forEach(o => {
+      s.ume += o.ume; s.take += o.take; s.matsu += o.matsu; s[o.team] += o.drink; s.n++;
+    });
+    $("stats").innerHTML = '今日（この端末）：会計 <b>' + s.n + '</b>件 ／ 梅 <b>' + s.ume + '</b>・竹 <b>' + s.take + '</b>・松 <b>' + s.matsu + '</b> ／ ドリンク A班 <b>' + s.A + '</b>・B班 <b>' + s.B + '</b>';
+  }
+
+  // ---- 送信状況の表示 ----
+  let lastError = "";
+  function renderStatus() {
+    const st = $("status");
+    if (!cfg.api || !cfg.pin) { st.textContent = "設定が必要"; st.className = "status ng"; return; }
+    if (lastError) { st.textContent = lastError; st.className = "status ng"; return; }
+    if (queue.length) { st.textContent = "送信待ち " + queue.length + "件"; st.className = "status wait"; return; }
+    st.textContent = "記録OK"; st.className = "status ok";
+  }
+
+  // ---- 送信（失敗したら端末に残して、あとで送り直す） ----
+  let sending = false;
+  async function flush() {
+    if (sending || !queue.length || !cfg.api || !cfg.pin) return;
+    sending = true;
+    try {
+      while (queue.length) {
+        const item = queue[0];
+        // text/plain で送る＝Apps Script へ余計な事前確認なしで届く
+        const res = await fetch(cfg.api, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(Object.assign({ pin: cfg.pin }, item)) });
+        const data = await res.json();
+        if (!data.ok) { lastError = data.error === "pin" ? "PINが違う" : "記録エラー"; break; }
+        lastError = "";
+        queue.shift();
+        store.set("pos_queue", queue);
+      }
+    } catch (e) {
+      lastError = ""; // 電波切れ。送信待ちとして表示する
+    }
+    sending = false;
+    renderStatus();
+  }
+  setInterval(flush, 5000);
+  window.addEventListener("online", flush);
+
+  // ---- 会計確定 ----
+  function checkout() {
+    const order = {
+      action: "add",
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      ts: Date.now(),
+      ume: cart.ume, take: cart.take, matsu: cart.matsu, drink: cart.drink,
+      team: team, total: totalOf(),
+    };
+    log.push(order); store.set("pos_log", log.slice(-500));
+    queue.push(order); store.set("pos_queue", queue);
+    cart = { ume: 0, take: 0, matsu: 0, drink: 0 }; paid = null;
+    if (navigator.vibrate) navigator.vibrate(30);
+    toast("記録しました " + order.total.toLocaleString() + "円");
+    render(); flush();
+  }
+
+  // ---- 直前の会計を取消 ----
+  function voidLast() {
+    const o = [...log].reverse().find(x => !x.voided);
+    if (!o) { toast("取り消せる会計がありません"); return; }
+    if (!confirm("直前の会計（" + o.total + "円）を取り消しますか？")) return;
+    o.voided = true; store.set("pos_log", log);
+    const i = queue.findIndex(q => q.id === o.id && q.action === "add");
+    if (i >= 0) queue.splice(i, 1);                       // まだ送っていなければ、送らずに消す
+    else queue.push({ action: "void", id: o.id });        // 送っていたら、取消を送る
+    store.set("pos_queue", queue);
+    toast("取り消しました"); render(); flush();
+  }
+
+  // ---- ボタン操作 ----
+  document.addEventListener("click", e => {
+    const t = e.target.closest("button"); if (!t) return;
+    const k = t.dataset.add || t.dataset.inc;
+    if (k) { cart[k]++; render(); return; }
+    if (t.dataset.dec) { cart[t.dataset.dec] = Math.max(0, cart[t.dataset.dec] - 1); render(); return; }
+    if (t.dataset.paid) { paid = t.dataset.paid; render(); return; }
+    if (t.dataset.team) { team = t.dataset.team; store.set("pos_team", team); toast(team === "A" ? "A班（人で売る）に切替" : "B班（商品で売る）に切替"); render(); return; }
+  });
+  $("go").addEventListener("click", checkout);
+  $("clear").addEventListener("click", () => { cart = { ume: 0, take: 0, matsu: 0, drink: 0 }; paid = null; render(); });
+  $("void").addEventListener("click", voidLast);
+
+  // ---- 設定 ----
+  $("pin").value = cfg.pin; $("api").value = cfg.api; $("dprice").value = cfg.drinkPrice;
+  if (!cfg.pin || !cfg.api) $("settings").open = true;
+  $("save").addEventListener("click", () => {
+    cfg.pin = $("pin").value.trim(); cfg.api = $("api").value.trim(); cfg.drinkPrice = Number($("dprice").value) || 0;
+    store.set("pos_cfg", cfg); lastError = ""; $("settings").open = false; toast("保存しました"); render(); flush();
+  });
+
+  render(); flush();
+</script>
+</body>
+</html>
