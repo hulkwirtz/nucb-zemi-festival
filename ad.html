@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="robots" content="noindex, nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>内古閑ゼミの屋台</title>
+<!--
+  集客用：iPadで全画面表示して持ち歩く。
+  ※ 実験を守るため、値段・サイズ・「人気」・商品の良さの訴求・仕掛けのほのめかしは載せない
+-->
+<style>
+  :root { --bg: #1f3d2b; --ink: #fffaf0; --gold: #f2c14e; --sub: #cfe3d4; }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body {
+    background: radial-gradient(120% 90% at 50% 0%, #2c5a3f 0%, var(--bg) 60%, #14291d 100%);
+    color: var(--ink); overflow: hidden; -webkit-user-select: none; user-select: none;
+    font-family: -apple-system, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+  }
+  .slide {
+    position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 6vmin; opacity: 0; transform: scale(.96); transition: opacity .9s, transform .9s;
+  }
+  .slide.on { opacity: 1; transform: none; }
+  .kicker { font-size: 3.4vmin; letter-spacing: .3em; color: var(--gold); font-weight: 700; margin-bottom: 2vmin; }
+  h1 { font-size: 13vmin; line-height: 1.15; font-weight: 900; letter-spacing: .02em; }
+  h1 small { display: block; font-size: 5.5vmin; font-weight: 700; color: var(--sub); margin-bottom: 1.5vmin; letter-spacing: .1em; }
+  .lead { font-size: 4.6vmin; font-weight: 700; margin-top: 4vmin; line-height: 1.5; }
+
+  /* ハヤシライス（CSSで描いたお皿＋湯気） */
+  .dish { position: relative; width: 52vmin; height: 30vmin; margin-bottom: 5vmin; }
+  .plate { position: absolute; inset: auto 0 0 0; height: 16vmin; border-radius: 50%; background: #f6f1e7; box-shadow: 0 2vmin 4vmin rgba(0,0,0,.35); }
+  .rice { position: absolute; left: 8vmin; bottom: 5vmin; width: 22vmin; height: 12vmin; border-radius: 50% 50% 45% 45%; background: #fffdf6; }
+  .roux { position: absolute; right: 6vmin; bottom: 4vmin; width: 30vmin; height: 13vmin; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #8a3b1d, #5a230f 70%); }
+  .steam { position: absolute; bottom: 14vmin; width: 3vmin; height: 12vmin; border-radius: 2vmin; background: linear-gradient(to top, rgba(255,255,255,.5), transparent); filter: blur(.6vmin); animation: steam 2.6s ease-in-out infinite; }
+  .steam:nth-child(4) { left: 20vmin; } .steam:nth-child(5) { left: 27vmin; animation-delay: .8s; } .steam:nth-child(6) { left: 34vmin; animation-delay: 1.6s; }
+  @keyframes steam { 0% { transform: translateY(2vmin) scaleY(.6); opacity: 0; } 40% { opacity: 1; } 100% { transform: translateY(-6vmin) scaleY(1.2); opacity: 0; } }
+
+  /* ドリンク（色が揺れる3つのカップ） */
+  .cups { display: flex; gap: 6vmin; align-items: flex-end; margin-bottom: 5vmin; }
+  .cup { position: relative; width: 16vmin; height: 26vmin; border: .6vmin solid rgba(255,255,255,.85); border-top: none; border-radius: 0 0 3vmin 3vmin; overflow: hidden; background: rgba(255,255,255,.06); }
+  .cup .liq { position: absolute; left: -10%; right: -10%; bottom: 0; height: 78%; animation: wave 3s ease-in-out infinite; }
+  .cup .bub { position: absolute; bottom: 0; width: 1.4vmin; height: 1.4vmin; border-radius: 50%; background: rgba(255,255,255,.7); animation: bub 2.4s linear infinite; }
+  .c1 .liq { background: linear-gradient(#ffd6c9, #f7a98f); }
+  .c2 .liq { background: linear-gradient(#ff5d73, #c2143a); animation-delay: .5s; }
+  .c3 .liq { background: linear-gradient(#5fd0ff, #1b6fd6); animation-delay: 1s; }
+  .cup:nth-child(2) { height: 30vmin; }
+  @keyframes wave { 50% { transform: translateY(-1.2vmin) rotate(-2deg); } }
+  @keyframes bub { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(-24vmin); opacity: 0; } }
+
+  /* 最後のスライド */
+  .badge { display: inline-block; border: .5vmin solid var(--gold); color: var(--gold); border-radius: 99px; padding: 1.2vmin 4vmin; font-size: 4vmin; font-weight: 800; margin-bottom: 4vmin; }
+  .pulse { animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 50% { transform: scale(1.05); } }
+
+  /* 進み具合のドット */
+  .dots { position: absolute; bottom: 4vmin; left: 0; right: 0; display: flex; justify-content: center; gap: 2vmin; }
+  .dots i { width: 1.8vmin; height: 1.8vmin; border-radius: 50%; background: rgba(255,255,255,.3); transition: background .4s; }
+  .dots i.on { background: var(--gold); }
+
+  /* 最初の案内（タップで全画面） */
+  .start { position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.55); font-size: 4vmin; font-weight: 700; }
+  .start.hide { display: none; }
+</style>
+</head>
+<body>
+
+  <section class="slide">
+    <div class="dish" aria-hidden="true">
+      <div class="plate"></div><div class="rice"></div><div class="roux"></div>
+      <div class="steam"></div><div class="steam"></div><div class="steam"></div>
+    </div>
+    <h1><small>先生お手製</small>ハヤシライス</h1>
+    <p class="lead">あったかいの、できてます</p>
+  </section>
+
+  <section class="slide">
+    <div class="cups" aria-hidden="true">
+      <div class="cup c1"><div class="liq"></div><span class="bub" style="left:30%"></span><span class="bub" style="left:62%;animation-delay:1.1s"></span></div>
+      <div class="cup c2"><div class="liq"></div><span class="bub" style="left:40%;animation-delay:.6s"></span><span class="bub" style="left:70%;animation-delay:1.7s"></span></div>
+      <div class="cup c3"><div class="liq"></div><span class="bub" style="left:35%;animation-delay:.3s"></span><span class="bub" style="left:65%;animation-delay:1.4s"></span></div>
+    </div>
+    <h1><small>色を楽しむ</small>ドリンク</h1>
+    <p class="lead">シュワっと、色あざやか</p>
+  </section>
+
+  <section class="slide">
+    <div class="badge">名古屋商科大学 BBA</div>
+    <h1><small>経営学ゼミの屋台</small>内古閑ゼミ</h1>
+    <p class="lead pulse">ハヤシライス ＆ ドリンク<br>ぜひ寄っていってください！</p>
+  </section>
+
+  <div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
+  <div class="start" id="start">タップして開始（全画面）</div>
+
+<script>
+  // ---- スライドを順番に切り替える（5秒ごと） ----
+  const slides = document.querySelectorAll(".slide");
+  const dots = document.querySelectorAll(".dots i");
+  let i = 0;
+  function show(n) {
+    slides.forEach((s, k) => s.classList.toggle("on", k === n));
+    dots.forEach((d, k) => d.classList.toggle("on", k === n));
+  }
+  show(0);
+  setInterval(() => { i = (i + 1) % slides.length; show(i); }, 5000);
+
+  // ---- 画面が消えないようにする（対応している端末のみ） ----
+  let lock = null;
+  async function keepAwake() {
+    try { if ("wakeLock" in navigator) lock = await navigator.wakeLock.request("screen"); } catch (e) {}
+  }
+  // アプリを切り替えて戻ってきたら、もう一度お願いする
+  document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && lock !== null) keepAwake(); });
+
+  // ---- 最初のタップで全画面＋スリープ防止 ----
+  document.getElementById("start").addEventListener("click", e => {
+    e.currentTarget.classList.add("hide");
+    const el = document.documentElement;
+    try { (el.requestFullscreen || el.webkitRequestFullscreen).call(el); } catch (err) {}
+    keepAwake();
+  });
+</script>
+</body>
+</html>
