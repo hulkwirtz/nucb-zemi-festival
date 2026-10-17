@@ -29,14 +29,17 @@
   .team button.on { background: var(--drink); color: #fff; }
 
   /* 商品ボタン */
-  .items { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .item { background: var(--card); border: 2px solid var(--line); border-radius: 16px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+  /* 6列の格子：ハヤシは2列ずつ（3つで1段）、ドリンクは3列ずつ（2つで1段） */
+  .items { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+  .item { grid-column: span 2; }
+  .item.wide { grid-column: span 3; }
+  .item { background: var(--card); border: 2px solid var(--line); border-radius: 16px; padding: 8px; display: flex; flex-direction: column; gap: 8px; }
   .item .add { border: 0; background: none; text-align: left; padding: 4px 2px; }
-  .item .nm { font-size: 1.5rem; font-weight: 800; }
+  .item .nm { font-size: 1.35rem; font-weight: 800; white-space: nowrap; }
   .item .pr { font-size: .9rem; color: var(--sub); }
   .item .ctl { display: flex; align-items: center; justify-content: space-between; }
-  .item .ctl button { width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); font-size: 1.4rem; font-weight: 700; }
-  .item .qty { font-size: 1.8rem; font-weight: 800; font-variant-numeric: tabular-nums; min-width: 2ch; text-align: center; }
+  .item .ctl button { width: 36px; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: var(--bg); font-size: 1.4rem; font-weight: 700; }
+  .item .qty { font-size: 1.5rem; font-weight: 800; font-variant-numeric: tabular-nums; min-width: 2ch; text-align: center; }
   .item.has { border-color: currentColor; }
 
   /* 合計・おつり */
@@ -106,8 +109,6 @@
     <input id="pin" inputmode="numeric" autocomplete="off">
     <label for="api">記録先のURL（Apps ScriptのウェブアプリURL）</label>
     <input id="api" inputmode="url" autocomplete="off" placeholder="https://script.google.com/macros/s/.../exec">
-    <label for="dprice">ドリンクの値段（円）</label>
-    <input id="dprice" inputmode="numeric">
     <button class="save" id="save" type="button">保存</button>
   </details>
 </main>
@@ -125,7 +126,7 @@
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
   };
 
-  const cfg = Object.assign({ pin: "", api: DEFAULT_API, drinkPrice: 300 }, store.get("pos_cfg", {}));
+  const cfg = Object.assign({ pin: "", api: DEFAULT_API }, store.get("pos_cfg", {}));
   if (!cfg.api) cfg.api = DEFAULT_API;
   let team = store.get("pos_team", "A");
   let queue = store.get("pos_queue", []);   // まだ送れていない記録
@@ -135,10 +136,12 @@
     { key: "ume", name: "梅", price: 300, color: "var(--ume)" },
     { key: "take", name: "竹", price: 400, color: "var(--take)" },
     { key: "matsu", name: "松", price: 700, color: "var(--matsu)" },
-    { key: "drink", name: "ドリンク", price: () => Number(cfg.drinkPrice) || 0, color: "var(--drink)" },
+    { key: "drinkS", name: "ドリンク小", price: 300, color: "var(--drink)", wide: true },
+    { key: "drinkL", name: "ドリンク普通", price: 500, color: "var(--drink)", wide: true },
   ];
-  const priceOf = it => typeof it.price === "function" ? it.price() : it.price;
-  let cart = { ume: 0, take: 0, matsu: 0, drink: 0 };
+  const priceOf = it => it.price;
+  const emptyCart = () => ({ ume: 0, take: 0, matsu: 0, drinkS: 0, drinkL: 0 });
+  let cart = emptyCart();
   let paid = null;
 
   const $ = id => document.getElementById(id);
@@ -147,7 +150,7 @@
   // ---- 商品ボタンを描く ----
   function renderItems() {
     $("items").innerHTML = ITEMS.map(it =>
-      '<div class="item' + (cart[it.key] ? " has" : "") + '" style="color:' + it.color + '">' +
+      '<div class="item' + (it.wide ? " wide" : "") + (cart[it.key] ? " has" : "") + '" style="color:' + it.color + '">' +
         '<button type="button" class="add" data-add="' + it.key + '"><div class="nm">' + it.name + '</div><div class="pr">' + priceOf(it) + '円</div></button>' +
         '<div class="ctl" style="color:var(--ink)"><button type="button" data-dec="' + it.key + '">−</button><span class="qty">' + cart[it.key] + '</span><button type="button" data-inc="' + it.key + '">＋</button></div>' +
       '</div>').join("");
@@ -158,7 +161,7 @@
     renderItems();
     const total = totalOf();
     $("total").textContent = total.toLocaleString() + "円";
-    $("go").disabled = total === 0 && cart.drink === 0;
+    $("go").disabled = total === 0;
     document.querySelectorAll("#paid button").forEach(b => b.classList.toggle("on", b.dataset.paid === String(paid)));
     const ch = $("change");
     if (paid === null || total === 0) { ch.textContent = "—"; ch.classList.remove("short"); }
@@ -176,11 +179,11 @@
   // ---- 今日の集計（この端末の分） ----
   function renderStats() {
     const today = new Date().toLocaleDateString("ja-JP");
-    const s = { ume: 0, take: 0, matsu: 0, A: 0, B: 0, n: 0 };
+    const s = { ume: 0, take: 0, matsu: 0, A: 0, B: 0, S: 0, L: 0, n: 0 };
     log.filter(o => !o.voided && new Date(o.ts).toLocaleDateString("ja-JP") === today).forEach(o => {
-      s.ume += o.ume; s.take += o.take; s.matsu += o.matsu; s[o.team] += o.drink; s.n++;
+      s.ume += o.ume; s.take += o.take; s.matsu += o.matsu; s[o.team] += o.drink; s.S += o.drinkS || 0; s.L += o.drinkL || 0; s.n++;
     });
-    $("stats").innerHTML = '今日（この端末）：会計 <b>' + s.n + '</b>件 ／ 梅 <b>' + s.ume + '</b>・竹 <b>' + s.take + '</b>・松 <b>' + s.matsu + '</b> ／ ドリンク A班 <b>' + s.A + '</b>・B班 <b>' + s.B + '</b>';
+    $("stats").innerHTML = '今日（この端末）：会計 <b>' + s.n + '</b>件 ／ 梅 <b>' + s.ume + '</b>・竹 <b>' + s.take + '</b>・松 <b>' + s.matsu + '</b> ／ ドリンク A班 <b>' + s.A + '</b>・B班 <b>' + s.B + '</b>（小 ' + s.S + '・普通 ' + s.L + '）';
   }
 
   // ---- 送信状況の表示 ----
@@ -224,12 +227,14 @@
       action: "add",
       id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
       ts: Date.now(),
-      ume: cart.ume, take: cart.take, matsu: cart.matsu, drink: cart.drink,
+      ume: cart.ume, take: cart.take, matsu: cart.matsu,
+      drink: cart.drinkS + cart.drinkL,   // Google側の「ドリンク」列＝小と普通の合計杯数
+      drinkS: cart.drinkS, drinkL: cart.drinkL,
       team: team, total: totalOf(),
     };
     log.push(order); store.set("pos_log", log.slice(-500));
     queue.push(order); store.set("pos_queue", queue);
-    cart = { ume: 0, take: 0, matsu: 0, drink: 0 }; paid = null;
+    cart = emptyCart(); paid = null;
     if (navigator.vibrate) navigator.vibrate(30);
     toast("記録しました " + order.total.toLocaleString() + "円");
     render(); flush();
@@ -258,14 +263,14 @@
     if (t.dataset.team) { team = t.dataset.team; store.set("pos_team", team); toast(team === "A" ? "A班（人で売る）に切替" : "B班（商品で売る）に切替"); render(); return; }
   });
   $("go").addEventListener("click", checkout);
-  $("clear").addEventListener("click", () => { cart = { ume: 0, take: 0, matsu: 0, drink: 0 }; paid = null; render(); });
+  $("clear").addEventListener("click", () => { cart = emptyCart(); paid = null; render(); });
   $("void").addEventListener("click", voidLast);
 
   // ---- 設定 ----
-  $("pin").value = cfg.pin; $("api").value = cfg.api; $("dprice").value = cfg.drinkPrice;
+  $("pin").value = cfg.pin; $("api").value = cfg.api;
   if (!cfg.pin || !cfg.api) $("settings").open = true;
   $("save").addEventListener("click", () => {
-    cfg.pin = $("pin").value.trim(); cfg.api = $("api").value.trim(); cfg.drinkPrice = Number($("dprice").value) || 0;
+    cfg.pin = $("pin").value.trim(); cfg.api = $("api").value.trim();
     store.set("pos_cfg", cfg); lastError = ""; $("settings").open = false; toast("保存しました"); render(); flush();
   });
 
